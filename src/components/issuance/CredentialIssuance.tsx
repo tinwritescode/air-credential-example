@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { AirCredentialWidget, type ClaimRequest, type JsonDocumentObject, type Language } from "@mocanetwork/air-credential-sdk";
+import {
+  AirCredentialWidget,
+  type ClaimRequest,
+  type JsonDocumentObject,
+  type Language,
+} from "@mocanetwork/air-credential-sdk";
 import "@mocanetwork/air-credential-sdk/dist/style.css";
 import { AirService, BUILD_ENV } from "@mocanetwork/airkit";
 import type { BUILD_ENV_TYPE } from "@mocanetwork/airkit";
 import type { EnvironmentConfig } from "../../config/environments";
+import { Reclaim } from "./Reclaim";
 
 // Environment variables for configuration
 const LOCALE = import.meta.env.VITE_LOCALE || "en";
@@ -23,7 +29,11 @@ interface CredentialIssuanceProps {
   environmentConfig: EnvironmentConfig;
 }
 
-const getIssuerAuthToken = async (issuerDid: string, apiKey: string, apiUrl: string): Promise<string | null> => {
+const getIssuerAuthToken = async (
+  issuerDid: string,
+  apiKey: string,
+  apiUrl: string
+): Promise<string | null> => {
   try {
     const response = await fetch(`${apiUrl}/issuer/login`, {
       method: "POST",
@@ -47,7 +57,10 @@ const getIssuerAuthToken = async (issuerDid: string, apiKey: string, apiUrl: str
     if (data.code === 80000000 && data.data && data.data.token) {
       return data.data.token;
     } else {
-      console.error("Failed to get issuer auth token from API:", data.msg || "Unknown error");
+      console.error(
+        "Failed to get issuer auth token from API:",
+        data.msg || "Unknown error"
+      );
       return null;
     }
   } catch (error) {
@@ -56,7 +69,13 @@ const getIssuerAuthToken = async (issuerDid: string, apiKey: string, apiUrl: str
   }
 };
 
-const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId, environmentConfig }: CredentialIssuanceProps) => {
+const CredentialIssuance = ({
+  airService,
+  isLoggedIn,
+  airKitBuildEnv,
+  partnerId,
+  environmentConfig,
+}: CredentialIssuanceProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +85,8 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
   const [config, setConfig] = useState({
     issuerDid: import.meta.env.VITE_ISSUER_DID || "did:example:issuer123",
     apiKey: import.meta.env.VITE_ISSUER_API_KEY || "your-issuer-api-key", // api key
-    credentialId: import.meta.env.VITE_CREDENTIAL_ID || "c21hc0g0joevn0015479aK",
+    credentialId:
+      import.meta.env.VITE_CREDENTIAL_ID || "c21hc0g0joevn0015479aK",
   });
 
   // Dynamic credential subject fields
@@ -93,8 +113,13 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
     setCredentialFields([...credentialFields, newField]);
   };
 
-  const updateCredentialField = (id: string, field: Partial<CredentialField>) => {
-    setCredentialFields(credentialFields.map((f) => (f.id === id ? { ...f, ...field } : f)));
+  const updateCredentialField = (
+    id: string,
+    field: Partial<CredentialField>
+  ) => {
+    setCredentialFields(
+      credentialFields.map((f) => (f.id === id ? { ...f, ...field } : f))
+    );
   };
 
   const removeCredentialField = (id: string) => {
@@ -110,10 +135,16 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
         // Convert value based on type
         switch (field.type) {
           case "number":
-            value = typeof field.value === "string" ? parseFloat(field.value) || 0 : field.value;
+            value =
+              typeof field.value === "string"
+                ? parseFloat(field.value) || 0
+                : field.value;
             break;
           case "boolean":
-            value = typeof field.value === "string" ? field.value === "true" : field.value;
+            value =
+              typeof field.value === "string"
+                ? field.value === "true"
+                : field.value;
             break;
           case "date":
             if (typeof field.value === "string") {
@@ -121,7 +152,9 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
               const date = new Date(field.value);
               if (!isNaN(date.getTime())) {
                 value = parseInt(
-                  date.getFullYear().toString() + (date.getMonth() + 1).toString().padStart(2, "0") + date.getDate().toString().padStart(2, "0")
+                  date.getFullYear().toString() +
+                    (date.getMonth() + 1).toString().padStart(2, "0") +
+                    date.getDate().toString().padStart(2, "0")
                 );
               }
             }
@@ -139,10 +172,16 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
   const generateWidget = async () => {
     try {
       // Step 1: Fetch the issuer auth token using the API key
-      const fetchedIssuerAuthToken = await getIssuerAuthToken(config.issuerDid, config.apiKey, environmentConfig.apiUrl);
+      const fetchedIssuerAuthToken = await getIssuerAuthToken(
+        config.issuerDid,
+        config.apiKey,
+        environmentConfig.apiUrl
+      );
 
       if (!fetchedIssuerAuthToken) {
-        setError("Failed to fetch issuer authentication token. Please check your DID and API Key.");
+        setError(
+          "Failed to fetch issuer authentication token. Please check your DID and API Key."
+        );
         setIsLoading(false);
         return;
       }
@@ -160,14 +199,18 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
         credentialSubject: credentialSubject,
       };
 
-      const rp = await airService?.goToPartner(environmentConfig.widgetUrl).catch((err) => {
-        console.error("Error getting URL with token:", err);
-      });
+      const rp = await airService
+        ?.goToPartner(environmentConfig.widgetUrl)
+        .catch((err) => {
+          console.error("Error getting URL with token:", err);
+        });
 
       console.log("urlWithToken", rp, rp?.urlWithToken);
 
       if (!rp?.urlWithToken) {
-        console.warn("Failed to get URL with token. Please check your partner ID.");
+        console.warn(
+          "Failed to get URL with token. Please check your partner ID."
+        );
         setError("Failed to get URL with token. Please check your partner ID.");
         setIsLoading(false);
         return;
@@ -240,7 +283,11 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
         return (
           <select
             value={field.value.toString()}
-            onChange={(e) => updateCredentialField(field.id, { value: e.target.value === "true" })}
+            onChange={(e) =>
+              updateCredentialField(field.id, {
+                value: e.target.value === "true",
+              })
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="true">True</option>
@@ -252,7 +299,9 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
           <input
             type="date"
             value={typeof field.value === "string" ? field.value : ""}
-            onChange={(e) => updateCredentialField(field.id, { value: e.target.value })}
+            onChange={(e) =>
+              updateCredentialField(field.id, { value: e.target.value })
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         );
@@ -261,7 +310,11 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
           <input
             type="number"
             value={field.value.toString()}
-            onChange={(e) => updateCredentialField(field.id, { value: parseFloat(e.target.value) || 0 })}
+            onChange={(e) =>
+              updateCredentialField(field.id, {
+                value: parseFloat(e.target.value) || 0,
+              })
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         );
@@ -270,7 +323,9 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
           <input
             type="text"
             value={field.value.toString()}
-            onChange={(e) => updateCredentialField(field.id, { value: e.target.value })}
+            onChange={(e) =>
+              updateCredentialField(field.id, { value: e.target.value })
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
             placeholder="Enter value"
           />
@@ -278,33 +333,59 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleReclaimSuccess = (extractedParameters: any) => {
+    setCredentialFields(
+      Object.entries(extractedParameters).map(([key, value]) => ({
+        id: key,
+        name: key,
+        type: "string",
+        value:
+          typeof value === "string" && /".+?"/.test(value)
+            ? JSON.parse(value)
+            : value,
+      }))
+    );
+  };
+
   return (
     <div className="flex-1 p-2 sm:p-4 lg:p-8">
       <div className="w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl sm:mx-auto bg-white rounded-lg shadow-lg p-2 sm:p-6 lg:p-8">
         <div className="mb-4 sm:mb-6 lg:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">Credential Issuance</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">
+            Credential Issuance
+          </h2>
           <p className="text-gray-600 text-sm sm:text-base">
-            Issue digital credentials to users using the AIR Credential SDK. Configure the issuance parameters below and Start the widget to begin the
-            process.
+            Issue digital credentials to users using the AIR Credential SDK.
+            Configure the issuance parameters below and Start the widget to
+            begin the process.
           </p>
         </div>
 
         {/* Configuration Section */}
         <div className="mb-6 sm:mb-8">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-4">Configuration</h3>
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-4">
+            Configuration
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Issuer DID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Issuer DID
+              </label>
               <input
                 type="text"
                 value={config.issuerDid}
-                onChange={(e) => handleConfigChange("issuerDid", e.target.value)}
+                onChange={(e) =>
+                  handleConfigChange("issuerDid", e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="did:example:issuer123"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Issuer API Key</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Issuer API Key
+              </label>
               <input
                 type="text"
                 value={config.apiKey}
@@ -314,17 +395,23 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Credential ID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Credential ID
+              </label>
               <input
                 type="text"
                 value={config.credentialId}
-                onChange={(e) => handleConfigChange("credentialId", e.target.value)}
+                onChange={(e) =>
+                  handleConfigChange("credentialId", e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="credential-type-123"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Partner ID (from NavBar)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Partner ID (from NavBar)
+              </label>
               <input
                 type="text"
                 value={partnerId}
@@ -336,16 +423,31 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
           </div>
         </div>
 
+        {/* Add a section here to demonstrate using reclaim sdk to get the data, after we have that data, we update Credential Subject */}
+        <Reclaim onSuccess={handleReclaimSuccess} />
+
         {/* Dynamic Credential Subject Section */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 sm:mb-4 gap-2 sm:gap-0">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Credential Subject</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+              Credential Subject
+            </h3>
             <button
               onClick={addCredentialField}
               className="inline-flex items-center px-3 py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               Add Field
             </button>
@@ -354,28 +456,49 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
           {credentialFields.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No credential fields added yet.</p>
-              <p className="text-sm">Click "Add Field" to start building your credential subject.</p>
+              <p className="text-sm">
+                Click "Add Field" to start building your credential subject.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
               {credentialFields.map((field) => (
-                <div key={field.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <div
+                  key={field.id}
+                  className="p-4 border border-gray-200 rounded-lg bg-gray-50"
+                >
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Field Name</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Field Name
+                      </label>
                       <input
                         type="text"
                         value={field.name}
-                        onChange={(e) => updateCredentialField(field.id, { name: e.target.value })}
+                        onChange={(e) =>
+                          updateCredentialField(field.id, {
+                            name: e.target.value,
+                          })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
                         placeholder="e.g., name, email, age"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Type
+                      </label>
                       <select
                         value={field.type}
-                        onChange={(e) => updateCredentialField(field.id, { type: e.target.value as "string" | "number" | "boolean" | "date" })}
+                        onChange={(e) =>
+                          updateCredentialField(field.id, {
+                            type: e.target.value as
+                              | "string"
+                              | "number"
+                              | "boolean"
+                              | "date",
+                          })
+                        }
                         className="w-full h-[42px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 "
                       >
                         <option value="string">String</option>
@@ -385,7 +508,9 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Value</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Value
+                      </label>
                       {renderFieldValueInput(field)}
                     </div>
                     <div className="flex justify-end">
@@ -418,7 +543,9 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
 
         {/* Environment Info */}
         <div className="mb-6 sm:mb-8 p-2 sm:p-4 bg-gray-50 border border-gray-200 rounded-md">
-          <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-1 sm:mb-2">Environment Configuration:</h4>
+          <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-1 sm:mb-2">
+            Environment Configuration:
+          </h4>
           <div className="text-xs text-gray-700 space-y-1">
             <p>
               <strong>Widget URL:</strong> {environmentConfig.widgetUrl}
@@ -444,7 +571,9 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
 
         {isSuccess && (
           <div className="mb-4 sm:mb-6 p-2 sm:p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 text-xs sm:text-base">✅ Credential issuance completed successfully!</p>
+            <p className="text-green-800 text-xs sm:text-base">
+              ✅ Credential issuance completed successfully!
+            </p>
           </div>
         )}
 
@@ -457,8 +586,20 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
           >
             {isLoading ? (
               <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
                   <path
                     className="opacity-75"
                     fill="currentColor"
@@ -484,13 +625,21 @@ const CredentialIssuance = ({ airService, isLoggedIn, airKitBuildEnv, partnerId,
 
         {/* Instructions */}
         <div className="mt-6 sm:mt-8 p-2 sm:p-4 bg-blue-50 border border-blue-200 rounded-md">
-          <h4 className="text-xs sm:text-sm font-medium text-blue-900 mb-1 sm:mb-2">Instructions:</h4>
+          <h4 className="text-xs sm:text-sm font-medium text-blue-900 mb-1 sm:mb-2">
+            Instructions:
+          </h4>
           <ul className="text-xs sm:text-sm text-blue-800 space-y-1">
             <li>• Need to whitelist the cross partner domain in Airkit </li>
             <li>• Configure the issuer DID, API key, and credential ID</li>
-            <li>• Add credential subject fields using the "Add Field" button</li>
-            <li>• Set field name, type (string, number, boolean, date), and value</li>
-            <li>• Click "Start Credential Issuance Widget" to start the process</li>
+            <li>
+              • Add credential subject fields using the "Add Field" button
+            </li>
+            <li>
+              • Set field name, type (string, number, boolean, date), and value
+            </li>
+            <li>
+              • Click "Start Credential Issuance Widget" to start the process
+            </li>
             <li>• The widget will handle the credential issuance flow</li>
           </ul>
         </div>
